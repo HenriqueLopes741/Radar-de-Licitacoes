@@ -13,3 +13,6 @@ __pycache__/
 data/
 # Testes
 .pytest_cache/
+
+# Airflow
+logs/
