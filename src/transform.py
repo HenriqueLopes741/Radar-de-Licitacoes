@@ -3,20 +3,25 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.extract import PARAMS, caminho_arquivo_bruto
 
-ARQUIVO_ENTRADA = Path("data/raw/contratacoes.json")
+
+ARQUIVO_ENTRADA = caminho_arquivo_bruto(PARAMS["dataInicial"], PARAMS["dataFinal"])
 ARQUIVO_SAIDA = Path("data/processed/contratacoes.csv")
 
 
-def transformar_dados():
+def transformar_dados(arquivo_entrada=None, arquivo_saida=None):
+    arquivo_entrada = Path(arquivo_entrada or ARQUIVO_ENTRADA)
+    arquivo_saida = Path(arquivo_saida or ARQUIVO_SAIDA)
+
     # 1. Verificar se o arquivo bruto existe
-    if not ARQUIVO_ENTRADA.exists():
+    if not arquivo_entrada.exists():
         raise FileNotFoundError(
-            f"Arquivo não encontrado: {ARQUIVO_ENTRADA}"
+            f"Arquivo não encontrado: {arquivo_entrada}"
         )
 
     # 2. Ler o JSON bruto
-    with ARQUIVO_ENTRADA.open("r", encoding="utf-8") as arquivo:
+    with arquivo_entrada.open("r", encoding="utf-8") as arquivo:
         registros = json.load(arquivo)
 
     if not isinstance(registros, list):
@@ -112,14 +117,14 @@ def transformar_dados():
         )
 
     # 8. Criar a pasta de saída
-    ARQUIVO_SAIDA.parent.mkdir(
+    arquivo_saida.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
     # 9. Salvar o CSV
     df.to_csv(
-        ARQUIVO_SAIDA,
+        arquivo_saida,
         index=False,
         encoding="utf-8-sig",
         date_format="%Y-%m-%d %H:%M:%S",
@@ -127,10 +132,12 @@ def transformar_dados():
 
     print(f"Registros transformados: {len(df)}")
     print(f"Colunas geradas: {len(df.columns)}")
-    print(f"CSV salvo em: {ARQUIVO_SAIDA}")
+    print(f"CSV salvo em: {arquivo_saida}")
 
     print("\nPrévia dos dados:")
     print(df.head(5).to_string(index=False))
+
+    return arquivo_saida
 
 
 if __name__ == "__main__":

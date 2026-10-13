@@ -122,6 +122,18 @@ def test_padroniza_datas_e_anula_datas_invalidas(arquivos):
     assert pd.isna(df.loc[1, "data_encerramento"])
 
 
+def test_aceita_caminhos_de_entrada_e_saida(tmp_path):
+    entrada = tmp_path / "raw/contratacoes_20261013.json"
+    saida = tmp_path / "processed/contratacoes_20261013.csv"
+    entrada.parent.mkdir(parents=True)
+    entrada.write_text(json.dumps([registro()], ensure_ascii=False), encoding="utf-8")
+
+    retorno = transform.transformar_dados(arquivo_entrada=entrada, arquivo_saida=saida)
+
+    assert retorno == saida
+    assert len(pd.read_csv(saida, encoding="utf-8-sig")) == 1
+
+
 def test_erro_quando_arquivo_nao_existe(arquivos):
     with pytest.raises(FileNotFoundError):
         transform.transformar_dados()

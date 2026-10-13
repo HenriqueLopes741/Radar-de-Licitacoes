@@ -19,10 +19,24 @@ MAX_TENTATIVAS = 5
 PAUSA_ENTRE_PAGINAS = 6
 ESPERA_APOS_429 = 30
 
+PASTA_SAIDA = Path("data/raw")
 
-def extrair_dados():
-    pasta_saida = Path("data/raw")
-    pasta_saida.mkdir(parents=True, exist_ok=True)
+
+def caminho_arquivo_bruto(data_inicial, data_final):
+    # Um arquivo por período, para não sobrescrever as execuções anteriores
+    if data_inicial == data_final:
+        nome = f"contratacoes_{data_inicial}.json"
+    else:
+        nome = f"contratacoes_{data_inicial}_{data_final}.json"
+
+    return PASTA_SAIDA / nome
+
+
+def extrair_dados(
+    data_inicial=PARAMS["dataInicial"],
+    data_final=PARAMS["dataFinal"],
+):
+    PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
 
     todos_registros = []
     pagina = 1
@@ -31,6 +45,8 @@ def extrair_dados():
     with requests.Session() as session:
         while total_paginas is None or pagina <= total_paginas:
             params = PARAMS.copy()
+            params["dataInicial"] = data_inicial
+            params["dataFinal"] = data_final
             params["pagina"] = pagina
 
             for tentativa in range(1, MAX_TENTATIVAS + 1):
@@ -56,6 +72,11 @@ def extrair_dados():
                 print(response.text)
             response.raise_for_status()
 
+            # A API responde 204 (sem corpo) quando não há contratações
+            if response.status_code == 204:
+                print("Nenhuma contratação encontrada no período.")
+                break
+
             dados = response.json()
             registros = dados.get("data", [])
 
@@ -78,13 +99,15 @@ def extrair_dados():
             pagina += 1
             time.sleep(PAUSA_ENTRE_PAGINAS)
 
-    arquivo = pasta_saida / "contratacoes.json"
+    arquivo = caminho_arquivo_bruto(data_inicial, data_final)
 
     with arquivo.open("w", encoding="utf-8") as f:
         json.dump(todos_registros, f, ensure_ascii=False, indent=2)
 
     print(f"\nExtração concluída: {len(todos_registros)} registros")
     print(f"Arquivo salvo em: {arquivo}")
+
+    return arquivo
 
 
 if __name__ == "__main__":

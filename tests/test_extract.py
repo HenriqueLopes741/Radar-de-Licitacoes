@@ -44,20 +44,19 @@ def get(tmp_path, monkeypatch, esperas):
     return mock_get
 
 
-def ler_json_salvo(tmp_path):
-    arquivo = tmp_path / "data/raw/contratacoes.json"
+def ler_json_salvo(arquivo):
     return json.loads(arquivo.read_text(encoding="utf-8"))
 
 
-def test_junta_todas_as_paginas_e_salva_json(get, tmp_path):
+def test_junta_todas_as_paginas_e_salva_json(get):
     get.side_effect = [
         resposta(dados=pagina([{"numeroControlePNCP": "1"}, {"numeroControlePNCP": "2"}], 2)),
         resposta(dados=pagina([{"numeroControlePNCP": "3"}], 2)),
     ]
 
-    extract.extrair_dados()
+    arquivo = extract.extrair_dados()
 
-    salvo = ler_json_salvo(tmp_path)
+    salvo = ler_json_salvo(arquivo)
     assert [r["numeroControlePNCP"] for r in salvo] == ["1", "2", "3"]
     assert get.call_count == 2
 
@@ -78,17 +77,17 @@ def test_envia_numero_da_pagina_e_filtros(get):
     assert params["dataInicial"] == extract.PARAMS["dataInicial"]
 
 
-def test_tenta_de_novo_apos_429(get, tmp_path, esperas):
+def test_tenta_de_novo_apos_429(get, esperas):
     get.side_effect = [
         resposta(429),
         resposta(dados=pagina([{"numeroControlePNCP": "1"}], 1)),
     ]
 
-    extract.extrair_dados()
+    arquivo = extract.extrair_dados()
 
     assert get.call_count == 2
     assert extract.ESPERA_APOS_429 in esperas
-    assert len(ler_json_salvo(tmp_path)) == 1
+    assert len(ler_json_salvo(arquivo)) == 1
 
 
 def test_respeita_retry_after_da_api(get, esperas):
@@ -120,10 +119,37 @@ def test_erro_400_nao_tenta_de_novo(get):
     assert get.call_count == 1
 
 
-def test_para_quando_pagina_vem_vazia(get, tmp_path):
+def test_para_quando_pagina_vem_vazia(get):
     get.side_effect = [resposta(dados=pagina([], 5))]
 
-    extract.extrair_dados()
+    arquivo = extract.extrair_dados()
 
     assert get.call_count == 1
-    assert ler_json_salvo(tmp_path) == []
+    assert ler_json_salvo(arquivo) == []
+
+
+def test_para_quando_api_responde_204(get):
+    get.side_effect = [resposta(204)]
+
+    arquivo = extract.extrair_dados()
+
+    assert get.call_count == 1
+    assert ler_json_salvo(arquivo) == []
+
+
+def test_envia_datas_informadas_e_salva_um_arquivo_por_dia(get, tmp_path):
+    get.side_effect = [resposta(dados=pagina([{"numeroControlePNCP": "1"}], 1))]
+
+    arquivo = extract.extrair_dados(data_inicial="20261013", data_final="20261013")
+
+    params = get.call_args.kwargs["params"]
+    assert params["dataInicial"] == "20261013"
+    assert params["dataFinal"] == "20261013"
+    assert arquivo == extract.PASTA_SAIDA / "contratacoes_20261013.json"
+    assert (tmp_path / arquivo).exists()
+
+
+def test_nome_do_arquivo_inclui_o_periodo():
+    assert extract.caminho_arquivo_bruto("20261001", "20261002").name == (
+        "contratacoes_20261001_20261002.json"
+    )
