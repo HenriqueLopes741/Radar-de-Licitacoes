@@ -11,3 +11,5 @@ __pycache__/
 
 # Dados
 data/
+# Testes
+.pytest_cache/
