@@ -1,5 +1,5 @@
 import pendulum
-from airflow.sdk import dag, task
+from airflow.sdk import Param, dag, task, task_group
 
 FUSO = "America/Sao_Paulo"
 
@@ -13,82 +13,127 @@ FUSO = "America/Sao_Paulo"
         2026, 10, 13, tz=FUSO
     ),
     catchup=False,
+    # Se a máquina estava suspensa, a execução atrasada dispara logo ao
+    # acordar, antes da rede voltar: tentar de novo em vez de falhar
+    default_args={
+        "retries": 3,
+        "retry_delay": pendulum.duration(minutes=5),
+    },
+    # Aparecem como formulário ao acionar a DAG manualmente; a execução
+    # agendada usa os valores padrão
+    params={
+        "modalidades": Param(
+            [6],
+            type="array",
+            items={"type": "integer"},
+            minItems=1,
+            title="Modalidades",
+            description="Códigos das modalidades de contratação (6 = Pregão Eletrônico)",
+        ),
+        "data": Param(
+            None,
+            type=["null", "string"],
+            format="date",
+            title="Data",
+            description="Dia a processar. Vazio: dia anterior à execução",
+        ),
+    },
     tags=["pncp", "etl", "pipeline"]
 )
 def pncp_pipeline():
 
     @task
-    def extrair_pncp(data_interval_end=None):
+    def listar_modalidades(params=None):
         """
-        Tarefa responsável por extrair os dados do PNCP do dia anterior à execução.
+        Tarefa responsável por entregar a lista de modalidades ao mapeamento.
         """
-        from src.extract import extrair_dados
+        return params["modalidades"]
 
-        # No Airflow 3 o @daily não tem intervalo: data_interval_end é o
-        # momento da execução, então o dia completo mais recente é o anterior
-        dia = (
-            data_interval_end.in_timezone(FUSO)
-            .subtract(days=1)
-            .strftime("%Y%m%d")
-        )
-        arquivo = extrair_dados(data_inicial=dia, data_final=dia)
+    @task_group
+    def processar_modalidade(modalidade):
 
-        return str(arquivo)
+        # Uma modalidade por vez, para não estourar o limite de requisições da API
+        @task(max_active_tis_per_dag=1)
+        def extrair_pncp(modalidade, params=None, data_interval_end=None):
+            """
+            Tarefa responsável por extrair os dados do PNCP de uma modalidade.
+            """
+            from src.extract import extrair_dados
 
-    @task
-    def validar_dados(arquivo):
-        """
-        Tarefa responsável por validar os dados extraídos.
-        """
+            if params["data"]:
+                dia = pendulum.parse(params["data"]).strftime("%Y%m%d")
+            else:
+                # No Airflow 3 o @daily não tem intervalo: data_interval_end é o
+                # momento da execução, então o dia completo mais recente é o anterior
+                dia = (
+                    data_interval_end.in_timezone(FUSO)
+                    .subtract(days=1)
+                    .strftime("%Y%m%d")
+                )
 
-        import json
-        from pathlib import Path
-
-        from airflow.sdk.exceptions import AirflowSkipException
-
-        arquivo = Path(arquivo)
-
-        if not arquivo.exists():
-            raise FileNotFoundError(
-                f"JSON não encontrado: {arquivo}"
+            arquivo = extrair_dados(
+                data_inicial=dia,
+                data_final=dia,
+                modalidade=modalidade,
             )
 
-        with open(arquivo, "r", encoding="utf-8") as f:
-            registros = json.load(f)
+            return str(arquivo)
 
-        if not isinstance(registros, list):
-            raise ValueError(
-                "A extração não gerou uma lista com registros"
-            )
+        @task
+        def validar_dados(arquivo):
+            """
+            Tarefa responsável por validar os dados extraídos.
+            """
 
-        # Dia sem contratações: pula a transformação em vez de falhar
-        if not registros:
-            raise AirflowSkipException(
-                f"Nenhuma contratação em {arquivo.name}"
-            )
+            import json
+            from pathlib import Path
 
-        print(f"Registros encontrados: {len(registros)}")
+            from airflow.sdk.exceptions import AirflowSkipException
 
-        return str(arquivo)
+            arquivo = Path(arquivo)
 
-    @task
-    def transformar_pncp(arquivo):
-        """
-        Tarefa responsável por transformar os dados extraídos.
-        """
-        from pathlib import Path
+            if not arquivo.exists():
+                raise FileNotFoundError(
+                    f"JSON não encontrado: {arquivo}"
+                )
 
-        from src.transform import transformar_dados
+            with open(arquivo, "r", encoding="utf-8") as f:
+                registros = json.load(f)
 
-        arquivo = Path(arquivo)
-        saida = Path("data/processed") / f"{arquivo.stem}.csv"
+            if not isinstance(registros, list):
+                raise ValueError(
+                    "A extração não gerou uma lista com registros"
+                )
 
-        transformar_dados(arquivo_entrada=arquivo, arquivo_saida=saida)
+            # Dia sem contratações: pula a transformação em vez de falhar
+            if not registros:
+                raise AirflowSkipException(
+                    f"Nenhuma contratação em {arquivo.name}"
+                )
 
-        return str(saida)
+            print(f"Registros encontrados: {len(registros)}")
 
-    extracao = extrair_pncp()
-    validacao = validar_dados(extracao)
-    transformar_pncp(validacao)
+            return str(arquivo)
 
+        @task
+        def transformar_pncp(arquivo):
+            """
+            Tarefa responsável por transformar os dados extraídos.
+            """
+            from pathlib import Path
+
+            from src.transform import transformar_dados
+
+            arquivo = Path(arquivo)
+            saida = Path("data/processed") / f"{arquivo.stem}.csv"
+
+            transformar_dados(arquivo_entrada=arquivo, arquivo_saida=saida)
+
+            return str(saida)
+
+        extracao = extrair_pncp(modalidade)
+        validacao = validar_dados(extracao)
+        transformar_pncp(validacao)
+
+    processar_modalidade.expand(modalidade=listar_modalidades())
 pncp_pipeline()
