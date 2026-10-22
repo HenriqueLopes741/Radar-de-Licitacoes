@@ -78,6 +78,9 @@ x-airflow-common:
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     # Permite importar o código do projeto (src/) nas DAGs
     PYTHONPATH: /opt/airflow
+    # Conexão com o banco dos dados do pipeline (usada como "pncp_db" nas tarefas)
+    AIRFLOW_CONN_PNCP_DB: postgresql://airflow:airflow@postgres:5432/pncp
+
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -102,6 +105,7 @@ services:
       POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
