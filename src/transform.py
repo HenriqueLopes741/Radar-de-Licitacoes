@@ -13,6 +13,24 @@ ARQUIVO_ENTRADA = caminho_arquivo_bruto(
 )
 ARQUIVO_SAIDA = Path("data/processed/contratacoes.csv")
 
+URL_EDITAL = "https://pncp.gov.br/app/editais"
+
+
+def link_pncp(numero_controle):
+    """
+    Gera o link para a página do PNCP de uma contratação específica.
+    """
+    # "83021808000182-1-000681/2026" -> .../editais/83021808000182/2026/681
+    try:
+        cnpj, _, resto = str(numero_controle).split("-")
+        sequencial, ano = resto.split("/")
+        return f"{URL_EDITAL}/{cnpj}/{ano}/{int(sequencial)}"
+    except ValueError:
+        # Fora do padrão: melhor ficar sem link do que com um link errado
+        return None
+
+
+
 
 def transformar_dados(arquivo_entrada=None, arquivo_saida=None):
     arquivo_entrada = Path(arquivo_entrada or ARQUIVO_ENTRADA)
@@ -119,6 +137,11 @@ def transformar_dados(arquivo_entrada=None, arquivo_saida=None):
             subset=["numero_controle_pncp"],
             keep="first",
         )
+        
+        # Link para a página da contratação no portal do PNCP
+        df["link_pncp"] = df["numero_controle_pncp"].map(link_pncp)
+
+
 
     # 8. Criar a pasta de saída
     arquivo_saida.parent.mkdir(

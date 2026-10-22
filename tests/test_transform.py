@@ -19,6 +19,8 @@ COLUNAS_ESPERADAS = [
     "valor_homologado",
     "situacao",
     "ano_compra",
+    "link_pncp",
+
 ]
 
 
@@ -143,3 +145,30 @@ def test_erro_quando_arquivo_nao_existe(arquivos):
 def test_erro_quando_json_vazio_ou_nao_e_lista(arquivos, conteudo):
     with pytest.raises(ValueError):
         executar(arquivos, conteudo)
+
+@pytest.mark.parametrize("numero, link", [
+    (
+        "83021808000182-1-000681/2026",
+        "https://pncp.gov.br/app/editais/83021808000182/2026/681",
+    ),
+    (
+        "00773222000147-1-000030/2026",
+        "https://pncp.gov.br/app/editais/00773222000147/2026/30",
+    ),
+])
+def test_monta_link_do_edital(numero, link):
+    assert transform.link_pncp(numero) == link
+
+
+def test_numero_fora_do_padrao_fica_sem_link():
+    assert transform.link_pncp("A") is None
+
+
+def test_csv_inclui_link_do_edital(arquivos):
+    df = executar(arquivos, [
+        registro(numeroControlePNCP="83021808000182-1-000681/2026"),
+    ])
+
+    assert df.loc[0, "link_pncp"] == (
+        "https://pncp.gov.br/app/editais/83021808000182/2026/681"
+    )

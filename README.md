@@ -78,6 +78,7 @@ Saída: `data/processed/contratacoes_AAAAMMDD.csv` (UTF-8 com BOM, abre corretam
 | `valor_homologado` | Valor total homologado (R$), quando houver |
 | `situacao` | Situação atual da compra |
 | `ano_compra` | Ano da compra |
+| `link_pncp` | Link para a página da contratação no portal do PNCP |
 
 ## Como usar
 
