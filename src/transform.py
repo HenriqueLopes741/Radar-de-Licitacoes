@@ -6,7 +6,11 @@ import pandas as pd
 from src.extract import PARAMS, caminho_arquivo_bruto
 
 
-ARQUIVO_ENTRADA = caminho_arquivo_bruto(PARAMS["dataInicial"], PARAMS["dataFinal"])
+ARQUIVO_ENTRADA = caminho_arquivo_bruto(
+    PARAMS["dataInicial"],
+    PARAMS["dataFinal"],
+    PARAMS["codigoModalidadeContratacao"],
+)
 ARQUIVO_SAIDA = Path("data/processed/contratacoes.csv")
 
 

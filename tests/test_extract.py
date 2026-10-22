@@ -145,11 +145,22 @@ def test_envia_datas_informadas_e_salva_um_arquivo_por_dia(get, tmp_path):
     params = get.call_args.kwargs["params"]
     assert params["dataInicial"] == "20261013"
     assert params["dataFinal"] == "20261013"
-    assert arquivo == extract.PASTA_SAIDA / "contratacoes_20261013.json"
+    assert arquivo == extract.PASTA_SAIDA / "contratacoes_20261013_m6.json"
     assert (tmp_path / arquivo).exists()
 
 
-def test_nome_do_arquivo_inclui_o_periodo():
-    assert extract.caminho_arquivo_bruto("20261001", "20261002").name == (
-        "contratacoes_20261001_20261002.json"
+def test_nome_do_arquivo_inclui_periodo_e_modalidade():
+    assert extract.caminho_arquivo_bruto("20261001", "20261002", 6).name == (
+        "contratacoes_20261001_20261002_m6.json"
     )
+
+
+def test_envia_modalidade_informada(get):
+    get.side_effect = [resposta(dados=pagina([{"numeroControlePNCP": "1"}], 1))]
+
+    arquivo = extract.extrair_dados(
+        data_inicial="20261013", data_final="20261013", modalidade=8
+    )
+
+    assert get.call_args.kwargs["params"]["codigoModalidadeContratacao"] == 8
+    assert arquivo.name == "contratacoes_20261013_m8.json"

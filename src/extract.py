@@ -22,19 +22,20 @@ ESPERA_APOS_429 = 30
 PASTA_SAIDA = Path("data/raw")
 
 
-def caminho_arquivo_bruto(data_inicial, data_final):
-    # Um arquivo por período, para não sobrescrever as execuções anteriores
+def caminho_arquivo_bruto(data_inicial, data_final, modalidade):
+    # Um arquivo por período e modalidade, para não sobrescrever as execuções anteriores
     if data_inicial == data_final:
-        nome = f"contratacoes_{data_inicial}.json"
+        periodo = data_inicial
     else:
-        nome = f"contratacoes_{data_inicial}_{data_final}.json"
+        periodo = f"{data_inicial}_{data_final}"
 
-    return PASTA_SAIDA / nome
+    return PASTA_SAIDA / f"contratacoes_{periodo}_m{modalidade}.json"
 
 
 def extrair_dados(
     data_inicial=PARAMS["dataInicial"],
     data_final=PARAMS["dataFinal"],
+    modalidade=PARAMS["codigoModalidadeContratacao"],
 ):
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
 
@@ -47,6 +48,7 @@ def extrair_dados(
             params = PARAMS.copy()
             params["dataInicial"] = data_inicial
             params["dataFinal"] = data_final
+            params["codigoModalidadeContratacao"] = modalidade
             params["pagina"] = pagina
 
             for tentativa in range(1, MAX_TENTATIVAS + 1):
@@ -99,7 +101,7 @@ def extrair_dados(
             pagina += 1
             time.sleep(PAUSA_ENTRE_PAGINAS)
 
-    arquivo = caminho_arquivo_bruto(data_inicial, data_final)
+    arquivo = caminho_arquivo_bruto(data_inicial, data_final, modalidade)
 
     with arquivo.open("w", encoding="utf-8") as f:
         json.dump(todos_registros, f, ensure_ascii=False, indent=2)
