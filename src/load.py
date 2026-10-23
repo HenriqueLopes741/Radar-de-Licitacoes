@@ -35,16 +35,30 @@ CREATE TABLE IF NOT EXISTS contratacoes (
 )
 """
 
+# No reprocessamento, a linha existente recebe os dados mais recentes
+ATUALIZAR = ",\n    ".join(
+    f"{coluna} = EXCLUDED.{coluna}"
+    for coluna in COLUNAS
+    if coluna != "numero_controle_pncp"
+)
+
 INSERIR = f"""
-INSERT INTO contratacoes ({",".join(COLUNAS)}) 
-VALUES ({",".join(["%s"] * len(COLUNAS))})
+INSERT INTO contratacoes ({", ".join(COLUNAS)})
+VALUES ({", ".join(["%s"] * len(COLUNAS))})
+ON CONFLICT (numero_controle_pncp) DO UPDATE SET
+    {ATUALIZAR},
+    atualizado_em = now()
 """
 
 def carregar_dados(arquivo_csv, conexao): 
     df = pd.read_csv(arquivo_csv, encoding="utf-8-sig")
 
     # Tipos do Python (e não do numpy), que o driver do Postgres sabe converter
-    linhas = df[COLUNAS].astype(object).values.tolist()
+    df = df[COLUNAS].astype(object)
+
+    # Vazios do CSV chegam como NaN; no banco devem ser NULL
+    linhas = df.where(df.notna(), None).values.tolist()
+
 
     with conexao.cursor() as cursor: 
         cursor.execute(CRIAR_TABELA)
