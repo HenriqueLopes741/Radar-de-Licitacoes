@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS contratacoes (
 )
 """
 
+# Os filtros mais comuns do dashboard e dos alertas: período e estado
+CRIAR_INDICES = """
+CREATE INDEX IF NOT EXISTS idx_contratacoes_data_publicacao
+    ON contratacoes (data_publicacao);
+CREATE INDEX IF NOT EXISTS idx_contratacoes_uf
+    ON contratacoes (uf);
+"""
+
 # No reprocessamento, a linha existente recebe os dados mais recentes
 ATUALIZAR = ",\n    ".join(
     f"{coluna} = EXCLUDED.{coluna}"
@@ -62,6 +70,7 @@ def carregar_dados(arquivo_csv, conexao):
 
     with conexao.cursor() as cursor: 
         cursor.execute(CRIAR_TABELA)
+        cursor.execute(CRIAR_INDICES)
         cursor.executemany(INSERIR, linhas)
 
     conexao.commit()

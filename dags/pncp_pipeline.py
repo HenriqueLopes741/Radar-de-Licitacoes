@@ -131,9 +131,26 @@ def pncp_pipeline():
 
             return str(saida)
 
+        @task
+        def carregar_banco(arquivo):
+            """
+            Tarefa responsável por carregar os dados transformados no banco.
+            """
+            from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+            from src.load import carregar_dados
+
+            conexao = PostgresHook(postgres_conn_id="pncp_db").get_conn()
+
+            try:
+                carregar_dados(arquivo_csv=arquivo, conexao=conexao)
+            finally:
+                conexao.close()
+
         extracao = extrair_pncp(modalidade)
         validacao = validar_dados(extracao)
-        transformar_pncp(validacao)
+        transformacao = transformar_pncp(validacao)
+        carregar_banco(transformacao)
 
     processar_modalidade.expand(modalidade=listar_modalidades())
 pncp_pipeline()
