@@ -1,0 +1,63 @@
+site_name: Pipeline de Compras Públicas
+site_description: Pipeline com Apache Airflow que coleta as contratações do PNCP, grava num banco e envia alertas por e-mail
+site_url: https://henriquelopes741.github.io/pipeline-compras-publicas-airflow/
+repo_url: https://github.com/HenriqueLopes741/pipeline-compras-publicas-airflow
+repo_name: pipeline-compras-publicas-airflow
+edit_uri: edit/main/docs/
+
+nav:
+  - Início: index.md
+  - Instalação:
+      - Subir o ambiente: instalacao/subir-o-ambiente.md
+      - Carregar dias anteriores: instalacao/carregar-dias-anteriores.md
+      - Rodar sem o Docker e testes: instalacao/desenvolvimento.md
+  - Como funciona:
+      - Fluxo da DAG: como-funciona/fluxo.md
+      - Agendamento: como-funciona/agendamento.md
+      - API do PNCP: como-funciona/api-pncp.md
+      - Banco de dados: como-funciona/banco.md
+  - Funções:
+      - Parâmetros da DAG: funcoes/parametros.md
+      - Dados gerados: funcoes/dados-gerados.md
+      - Dashboard: funcoes/dashboard.md
+      - Alertas por e-mail: funcoes/alertas.md
+
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.sections
+    - navigation.footer
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+
+markdown_extensions:
+  - tables
+  # Âncoras com acento, como no GitHub: o mesmo link funciona nos dois lugares
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+validation:
+  links:
+    anchors: warn

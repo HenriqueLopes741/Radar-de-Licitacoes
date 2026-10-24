@@ -76,7 +76,7 @@ Códigos mais comuns:
 | 8 | Dispensa de Licitação |
 | 9 | Inexigibilidade |
 
-A lista completa está no [manual da API de consulta do PNCP](https://www.gov.br/pncp/pt-br/central-de-conteudo/manuais).
+A lista completa está em [Parâmetros da DAG](../funcoes/parametros.md#modalidades).
 
 Cada modalidade a mais soma cerca de 3 minutos por dia ao tempo total.
 
