@@ -1,0 +1,17 @@
+# Copie para config/alertas.yml e ajuste. O alertas.yml fica fora do Git
+# porque terá e-mails reais.
+#
+# Todos os critérios são opcionais e valem juntos:
+#   palavras_chave   basta uma aparecer no objeto, sem diferenciar acentos e maiúsculas
+#   ufs              siglas dos estados
+#   valor_minimo     em reais; contratações de valor sigiloso ficam de fora
+#   enviar_se_vazio  envia o e-mail mesmo sem resultados (padrão: false)
+destinatarios:
+  - email: ti@exemplo.com
+    palavras_chave: ["Universidade"]
+    ufs: ["DF"]
+    valor_minimo: 50000
+
+  - email: saude@exemplo.com
+    palavras_chave: ["medicamento"]
+    enviar_se_vazio: true

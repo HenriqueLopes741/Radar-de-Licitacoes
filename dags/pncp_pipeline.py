@@ -144,5 +144,49 @@ def pncp_pipeline():
         transformacao = transformar_pncp(validacao)
         carregar_banco(transformacao)
 
-    processar_modalidade.expand(modalidade=listar_modalidades())
+    # Roda mesmo se alguma modalidade foi pulada (dia sem contratações);
+    # só não roda se alguma falhou, para não alertar com o dia incompleto
+    @task(trigger_rule="none_failed")
+    def notificar(params=None, data_interval_start=None):
+        """
+        Tarefa responsável por enviar os alertas por e-mail a cada destinatário.
+        """
+        import tempfile
+        from datetime import datetime
+        from pathlib import Path
+
+        from airflow.providers.postgres.hooks.postgres import PostgresHook
+        from airflow.providers.smtp.hooks.smtp import SmtpHook
+        from airflow.sdk.exceptions import AirflowSkipException
+
+        from src.alertas import carregar_config, contratacoes_do_dia, enviar_alertas
+        from src.extract import dia_a_processar
+
+        arquivo_config = Path("config/alertas.yml")
+        if not arquivo_config.exists():
+            raise AirflowSkipException(f"Nenhum alerta configurado em {arquivo_config}")
+
+        # Valida antes de tudo: um YAML errado falha aqui, sem enviar nada
+        config = carregar_config(arquivo_config)
+
+        dia = datetime.strptime(
+            dia_a_processar(params["data"], data_interval_start), "%Y%m%d"
+        ).date()
+
+        conexao = PostgresHook(postgres_conn_id="pncp_db").get_conn()
+        try:
+            contratacoes = contratacoes_do_dia(conexao, dia)
+        finally:
+            conexao.close()
+
+        # O "with" abre a conexão com o servidor de e-mail e a fecha no fim
+        with SmtpHook(smtp_conn_id="smtp_default") as smtp, tempfile.TemporaryDirectory() as pasta:
+            enviados = enviar_alertas(
+                config, contratacoes, dia, pasta, smtp.send_email_smtp
+            )
+
+        print(f"Alertas enviados: {len(enviados)} de {len(config.destinatarios)}")
+
+    processar_modalidade.expand(modalidade=listar_modalidades()) >> notificar()
+
 pncp_pipeline()

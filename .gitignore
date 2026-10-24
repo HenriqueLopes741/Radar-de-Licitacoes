@@ -16,3 +16,6 @@ data/
 
 # Airflow
 logs/
+
+# Alertas: tem e-mails reais (o modelo é o config/alertas.exemplo.yml)
+config/alertas.yml

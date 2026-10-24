@@ -80,6 +80,9 @@ x-airflow-common:
     PYTHONPATH: /opt/airflow
     # Conexão com o banco dos dados do pipeline (usada como "pncp_db" nas tarefas)
     AIRFLOW_CONN_PNCP_DB: postgresql://airflow:airflow@postgres:5432/pncp
+    # Servidor de e-mail dos alertas. Em desenvolvimento, o Mailpit guarda
+    # as mensagens em vez de entregá-las (veja em http://localhost:8025)
+    AIRFLOW_CONN_SMTP_DEFAULT: '{"conn_type": "smtp", "host": "mailpit", "port": 1025, "extra": {"disable_tls": true, "disable_ssl": true, "from_email": "alertas@pncp.local"}}'
 
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
@@ -353,6 +356,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: always
+
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    ports:
+      - "127.0.0.1:8025:8025"
     restart: always
 
 volumes:
