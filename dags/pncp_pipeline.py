@@ -1,5 +1,5 @@
 import pendulum
-from airflow.sdk import Param, dag, task, task_group
+from airflow.sdk import CronDataIntervalTimetable, Param, dag, task, task_group
 
 FUSO = "America/Sao_Paulo"
 
@@ -7,8 +7,9 @@ FUSO = "America/Sao_Paulo"
 @dag(
     dag_id="pncp_pipeline",
     description="Pipeline de extração e transformação de dados do PNCP",
-    # Roda à meia-noite (horário de Brasília) e processa o dia anterior
-    schedule="@daily",
+    # Cada execução cobre um dia inteiro e roda à meia-noite (horário de
+    # Brasília) seguinte. Assim, a data de um backfill é o dia processado
+    schedule=CronDataIntervalTimetable("0 0 * * *", timezone=FUSO),
     start_date=pendulum.datetime(
         2026, 10, 13, tz=FUSO
     ),
@@ -54,22 +55,13 @@ def pncp_pipeline():
 
         # Uma modalidade por vez, para não estourar o limite de requisições da API
         @task(max_active_tis_per_dag=1)
-        def extrair_pncp(modalidade, params=None, data_interval_end=None):
+        def extrair_pncp(modalidade, params=None, data_interval_start=None):
             """
             Tarefa responsável por extrair os dados do PNCP de uma modalidade.
             """
-            from src.extract import extrair_dados
+            from src.extract import dia_a_processar, extrair_dados
 
-            if params["data"]:
-                dia = pendulum.parse(params["data"]).strftime("%Y%m%d")
-            else:
-                # No Airflow 3 o @daily não tem intervalo: data_interval_end é o
-                # momento da execução, então o dia completo mais recente é o anterior
-                dia = (
-                    data_interval_end.in_timezone(FUSO)
-                    .subtract(days=1)
-                    .strftime("%Y%m%d")
-                )
+            dia = dia_a_processar(params["data"], data_interval_start)
 
             arquivo = extrair_dados(
                 data_inicial=dia,

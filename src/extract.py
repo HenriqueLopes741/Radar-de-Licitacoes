@@ -1,6 +1,8 @@
 import json
 import time
+from datetime import date
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -20,6 +22,16 @@ PAUSA_ENTRE_PAGINAS = 6
 ESPERA_APOS_429 = 30
 
 PASTA_SAIDA = Path("data/raw")
+
+FUSO = ZoneInfo("America/Sao_Paulo")
+
+def dia_a_processar(data, inicio_intervalo):
+    # Data informada ao acionar a DAG; senão, o dia que o intervalo da execução cobre
+    if data:
+        return date.fromisoformat(data).strftime("%Y%m%d")
+
+    return inicio_intervalo.astimezone(FUSO).strftime("%Y%m%d")
+
 
 
 def caminho_arquivo_bruto(data_inicial, data_final, modalidade):
