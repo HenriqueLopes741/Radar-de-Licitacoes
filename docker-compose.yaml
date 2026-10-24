@@ -343,5 +343,17 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  dashboard:
+    build: ./dashboard
+    environment:
+      # Mesma conexão das tarefas, pelo nome do serviço na rede do compose
+      PNCP_DB_URL: postgresql://airflow:airflow@postgres:5432/pncp
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
 volumes:
   postgres-db-volume:

@@ -37,10 +37,24 @@ def periodo():
     with closing(consultas.conectar()) as conexao:
         return consultas.periodo_publicado(conexao)
 
+def tem_dados():
+    # Sem cache: assim que a primeira carga roda, a tela já aparece
+    with closing(consultas.conectar()) as conexao:
+        return consultas.tem_dados(conexao)
+
 
 def em_reais(valor):
     # 1,234.56 -> 1.234,56
     return "R$ " + f"{valor:,.2f}".translate(str.maketrans(",.", ".,"))
+
+
+if not tem_dados():
+    st.title("Pregões eletrônicos publicados no PNCP")
+    st.info(
+        "Ainda não há dados. Ative a DAG pncp_pipeline no Airflow "
+        "(http://localhost:8080) e recarregue esta página depois da primeira carga."
+    )
+    st.stop()
 
 
 with st.sidebar:

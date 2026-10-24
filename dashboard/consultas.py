@@ -141,3 +141,8 @@ def indicadores(df, hoje):
 def com_dias_para_encerrar(df, hoje):
     return df.assign(encerra_em=_dias_para_encerrar(df, hoje))
 
+def tem_dados(conexao):
+    # Num ambiente novo a tabela só existe depois da primeira carga da DAG
+    with conexao.cursor() as cursor:
+        cursor.execute("SELECT to_regclass('contratacoes') IS NOT NULL")
+        return cursor.fetchone()[0]

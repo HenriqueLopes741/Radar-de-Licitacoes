@@ -215,3 +215,13 @@ def test_periodo_publicado(conexao, tmp_path):
     ])
 
     assert consultas.periodo_publicado(conexao) == (date(2026, 10, 1), date(2026, 10, 22))
+
+def test_sem_tabela_nao_tem_dados(conexao):
+    # A fixture apaga a tabela e nada foi carregado
+    assert consultas.tem_dados(conexao) is False
+
+
+def test_com_tabela_tem_dados(conexao, tmp_path):
+    carregar(conexao, tmp_path, [linha()])
+
+    assert consultas.tem_dados(conexao) is True
