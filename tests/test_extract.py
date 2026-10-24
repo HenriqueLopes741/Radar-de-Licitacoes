@@ -1,6 +1,6 @@
 import json
-from unittest.mock import Mock
 from datetime import datetime, timezone
+from unittest.mock import Mock
 
 import pytest
 import requests
@@ -166,17 +166,21 @@ def test_envia_modalidade_informada(get):
     assert get.call_args.kwargs["params"]["codigoModalidadeContratacao"] == 8
     assert arquivo.name == "contratacoes_20261013_m8.json"
 
-def test_processa_o_dia_do_inicio_do_intervalo(): 
-    # Meia-noite de 8/10 em brasilia
+
+
+def test_processa_o_dia_do_inicio_do_intervalo():
+    # Meia-noite de 08/10 em Brasília
     inicio = datetime(2026, 10, 8, 3, 0, tzinfo=timezone.utc)
 
-    assert extract.dia_a_processar(None,inicio) == "20261008"
+    assert extract.dia_a_processar(None, inicio) == "20261008"
+
 
 def test_dia_do_intervalo_segue_o_horario_de_brasilia():
-    # 09/010 em utc mais ainda 08/10 em brasilia
+    # 09/10 em UTC, mas ainda 08/10 em Brasília
     inicio = datetime(2026, 10, 9, 2, 0, tzinfo=timezone.utc)
 
     assert extract.dia_a_processar(None, inicio) == "20261008"
+
 
 def test_data_informada_tem_prioridade_sobre_o_intervalo():
     inicio = datetime(2026, 10, 8, 3, 0, tzinfo=timezone.utc)

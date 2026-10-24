@@ -6,7 +6,7 @@ FUSO = "America/Sao_Paulo"
 
 @dag(
     dag_id="pncp_pipeline",
-    description="Pipeline de extração e transformação de dados do PNCP",
+    description="Dia a processar. Vazio: o dia que a execução cobre",
     # Cada execução cobre um dia inteiro e roda à meia-noite (horário de
     # Brasília) seguinte. Assim, a data de um backfill é o dia processado
     schedule=CronDataIntervalTimetable("0 0 * * *", timezone=FUSO),

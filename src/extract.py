@@ -25,6 +25,7 @@ PASTA_SAIDA = Path("data/raw")
 
 FUSO = ZoneInfo("America/Sao_Paulo")
 
+
 def dia_a_processar(data, inicio_intervalo):
     # Data informada ao acionar a DAG; senão, o dia que o intervalo da execução cobre
     if data:
@@ -33,9 +34,9 @@ def dia_a_processar(data, inicio_intervalo):
     return inicio_intervalo.astimezone(FUSO).strftime("%Y%m%d")
 
 
-
 def caminho_arquivo_bruto(data_inicial, data_final, modalidade):
     # Um arquivo por período e modalidade, para não sobrescrever as execuções anteriores
+    
     if data_inicial == data_final:
         periodo = data_inicial
     else:
