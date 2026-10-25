@@ -54,8 +54,10 @@ Campos vazios no CSV viram `NULL` no banco.
 Pelo terminal:
 
 ```bash
-docker compose exec postgres psql -U airflow -d pncp
+make psql
 ```
+
+Sem o make, é o mesmo que `docker compose exec postgres psql -U airflow -d pncp`.
 
 Ou por qualquer cliente de PostgreSQL (DBeaver, pgAdmin, a extensão do VS Code) em `localhost:5433`, banco `pncp`, usuário `airflow` e senha `airflow`.
 

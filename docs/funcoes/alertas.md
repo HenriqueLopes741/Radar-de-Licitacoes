@@ -6,11 +6,13 @@ O envio é feito pela tarefa `notificar`, no fim da DAG, depois que todas as mod
 
 ## Configurar os destinatários
 
-Os destinatários ficam em `config/alertas.yml`. Copie o modelo e ajuste:
+Os destinatários ficam em `config/alertas.yml`. Crie o arquivo a partir do modelo e ajuste:
 
 ```bash
-cp config/alertas.exemplo.yml config/alertas.yml
+make alertas
 ```
+
+O `make alertas` só copia o `config/alertas.exemplo.yml` se o `alertas.yml` ainda não existir: um arquivo já configurado nunca é sobrescrito.
 
 ```yaml
 destinatarios:
@@ -96,8 +98,8 @@ O projeto vem com o **Mailpit**, um servidor de e-mail de teste. Ele recebe as m
 
 Para testar:
 
-1. Crie o `config/alertas.yml` (os endereços podem ser inventados).
-2. Acione a DAG com o campo **Data** de um dia que já está no banco.
+1. Crie o `config/alertas.yml` com `make alertas` (os endereços do exemplo servem).
+2. Acione a DAG para um dia que já está no banco: `make rodar DATA=2026-10-20`.
 3. Abra http://localhost:8025 e veja um e-mail por destinatário.
 
 Dois destinatários com critérios diferentes recebem e-mails diferentes, da mesma execução.
@@ -124,11 +126,7 @@ AIRFLOW_CONN_SMTP_DEFAULT: '{"conn_type": "smtp", "host": "smtp.gmail.com", "por
 | `disable_tls` | `true` só para servidores sem criptografia, como o Mailpit |
 | `from_email` | O remetente que aparece no e-mail |
 
-Depois de mudar, recrie os containers do Airflow para eles lerem a variável nova:
-
-```bash
-docker compose up -d
-```
+Depois de mudar, rode `make run`: ele recria os containers do Airflow, que passam a ler a variável nova.
 
 > **Não faça commit da senha.** O `docker-compose.yaml` é versionado. Desfaça a mudança antes de um commit, ou mantenha a versão com a senha só na sua máquina.
 

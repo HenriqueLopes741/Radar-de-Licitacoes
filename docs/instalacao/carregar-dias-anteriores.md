@@ -18,6 +18,27 @@ Cerca de **3 minutos por dia e por modalidade**. A API do PNCP limita o número 
 
 Fins de semana e feriados têm poucas publicações e terminam mais rápido.
 
+## Pelo make
+
+O jeito mais curto. O `make` já acrescenta o horário e o fuso de Brasília às datas, então o último dia sempre entra.
+
+```bash
+make backfill DIAS=30                            # de 30 dias atrás até ontem
+make backfill INICIO=2026-10-01 FIM=2026-10-10   # 01/10 a 10/10, os dois incluídos
+```
+
+Opções que podem ser somadas a qualquer um dos dois:
+
+| Opção | O que faz | Exemplo |
+|---|---|---|
+| `MODALIDADES` | Códigos das modalidades, separados por vírgula (padrão: 6) | `MODALIDADES=6,8,9` |
+| `REPROCESSAR` | Roda de novo os dias que já rodaram: `failed` ou `completed` (veja [Reprocessar dias que já rodaram](#reprocessar-dias-que-já-rodaram)) | `REPROCESSAR=failed` |
+| `SIMULAR` | Só mostra quais dias seriam processados, sem criar nada | `SIMULAR=1` |
+
+```bash
+make backfill INICIO=2026-10-01 FIM=2026-10-10 MODALIDADES=6,8 SIMULAR=1
+```
+
 ## Pela tela do Airflow
 
 1. Em **http://localhost:8080**, abra a DAG `pncp_pipeline` e clique em **Acionar** (*Trigger*).
@@ -34,7 +55,7 @@ As execuções aparecem na grade da DAG com o prefixo `backfill__`.
 
 ## Pela linha de comando
 
-Os comandos rodam dentro de um container do Airflow:
+É o que o `make backfill` roda por baixo. Os comandos rodam dentro de um container do Airflow:
 
 ```bash
 docker compose exec airflow-scheduler airflow backfill create \
@@ -102,11 +123,10 @@ Reprocessar não duplica registros: a carga usa o `numero_controle_pncp` como ch
 
 ## Conferir o resultado
 
-Para ver quantas contratações cada dia tem no banco:
+Para ver quantas contratações cada dia tem no banco, abra o terminal do banco com `make psql` e rode:
 
-```bash
-docker compose exec postgres psql -U airflow -d pncp -c \
-  "SELECT data_publicacao::date AS dia, count(*) FROM contratacoes GROUP BY 1 ORDER BY 1"
+```sql
+SELECT data_publicacao::date AS dia, count(*) FROM contratacoes GROUP BY 1 ORDER BY 1;
 ```
 
-Os dados ficam no volume do Postgres e continuam lá depois de um `docker compose down`. Só o `docker compose down -v` apaga tudo.
+Os dados ficam no volume do Postgres e continuam lá depois de um `make stop`. Só o `make limpar` apaga tudo.

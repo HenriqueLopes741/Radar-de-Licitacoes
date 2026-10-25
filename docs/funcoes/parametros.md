@@ -16,12 +16,26 @@ Ao acionar a DAG à mão, o Airflow mostra um formulário com dois campos. A exe
 
 Cada modalidade vira uma cópia do grupo de tarefas, com os seus próprios arquivos (veja [Fluxo da DAG](../como-funciona/fluxo.md#uma-cópia-por-modalidade)). Como as extrações rodam uma de cada vez, cada modalidade a mais soma cerca de 3 minutos.
 
+## Pelo make
+
+```bash
+make rodar                                  # ontem, modalidade 6
+make rodar DATA=2026-10-20                  # 20/10, modalidade 6
+make rodar DATA=2026-10-20 MODALIDADES=6,8  # 20/10, modalidades 6 e 8
+```
+
+Sem `DATA`, o `make` manda o dia anterior no horário de Brasília, o mesmo que a execução agendada processaria.
+
 ## Pela linha de comando
+
+É o que o `make rodar` roda por baixo:
 
 ```bash
 docker compose exec airflow-scheduler airflow dags trigger pncp_pipeline \
   --conf '{"modalidades": [6, 8], "data": "2026-10-20"}'
 ```
+
+> **Pela linha de comando, informe sempre a `data`.** Acionada pelo CLI ou pela API sem data lógica, a execução não tem intervalo de dados, e a extração falha com `'NoneType' object has no attribute 'astimezone'`. Na tela do Airflow isso não acontece, porque o formulário já preenche a data lógica.
 
 Para vários dias seguidos, use o backfill: [Carregar dias anteriores](../instalacao/carregar-dias-anteriores.md).
 

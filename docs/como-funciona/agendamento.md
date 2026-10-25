@@ -8,9 +8,11 @@
 | Ao ativar a DAG pela primeira vez, às 15h de 24/10 | Na hora | 23/10, o último dia completo |
 | Acionada à mão, com o campo **Data** vazio | Na hora | O dia anterior |
 | Acionada à mão, com **Data** = 20/10/2026 | Na hora | 20/10 |
+| `make rodar` | Na hora | O dia anterior |
+| `make rodar DATA=2026-10-20` | Na hora | 20/10 |
 | Backfill de 01/10 a 10/10 | Na hora, uma execução por dia | Cada dia de 01/10 a 10/10 |
 
-Em resumo: **para escolher o dia, use o campo Data** ao acionar a DAG, ou um backfill para vários dias. Não é preciso mexer na data lógica.
+Em resumo: **para escolher o dia, use o campo Data** ao acionar a DAG (ou `DATA=` no `make rodar`), ou um backfill para vários dias. Não é preciso mexer na data lógica.
 
 ## Como o dia é calculado
 
@@ -22,6 +24,8 @@ A função `dia_a_processar`, em `src/extract.py`, escolhe o dia assim:
 2. Senão, usa o **início do intervalo**, convertido para o horário de Brasília.
 
 A conversão importa porque o Airflow guarda os horários em UTC: meia-noite de 23/10 em Brasília é `2026-10-23 03:00 UTC`.
+
+Uma execução acionada pelo CLI ou pela API **sem data lógica** não tem intervalo. Nesse caso, a Data precisa ser informada, senão a extração falha. O `make rodar` sempre a informa.
 
 No backfill, a **data lógica** de cada execução é o início do intervalo. Por isso a data pedida no backfill é o próprio dia processado.
 

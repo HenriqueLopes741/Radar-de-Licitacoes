@@ -26,6 +26,19 @@ flowchart LR
 - **Um dashboard** com filtros por UF, município, órgão, palavra-chave, valor e prazo, e um link para o edital de cada contratação.
 - **Alertas por e-mail**: cada destinatário recebe só as contratações que batem com as suas palavras-chave, UFs e valor mínimo, com o CSV filtrado em anexo.
 
+## Em um minuto
+
+Com Docker e `make` instalados:
+
+```bash
+git clone https://github.com/HenriqueLopes741/pipeline-compras-publicas-airflow.git
+cd pipeline-compras-publicas-airflow
+make run                # configura, sobe tudo e ativa a DAG
+make backfill DIAS=30   # opcional: carrega os últimos 30 dias
+```
+
+Depois, abra o Airflow em http://localhost:8080 (`airflow`/`airflow`) e o dashboard em http://localhost:8501.
+
 ## Por onde começar
 
 | Quero... | Página |

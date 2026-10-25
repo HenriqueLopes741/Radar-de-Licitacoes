@@ -24,7 +24,7 @@ Para outro período, troque `PARAMS["dataInicial"]` e `PARAMS["dataFinal"]` (for
 ## Testes
 
 ```bash
-pytest
+make test      # ou só pytest
 ```
 
 Os testes não fazem requisições reais: a API do PNCP e o servidor de e-mail são simulados. Eles cobrem:
@@ -61,8 +61,14 @@ O endereço é **http://localhost:8501**, o mesmo do container: pare o serviço 
 Este site é feito com [MkDocs](https://www.mkdocs.org/) e o tema [Material](https://squidfunk.github.io/mkdocs-material/). As páginas ficam em `docs/` e o menu, no `mkdocs.yml`.
 
 ```bash
-pip install -r requirements-docs.txt
-mkdocs serve
+make docs
 ```
 
-O site abre em **http://localhost:8000** e recarrega a cada página salva. A cada push na `main` que mexa em `docs/` ou no `mkdocs.yml`, o workflow `.github/workflows/docs.yml` publica a nova versão no GitHub Pages.
+O `make docs` usa a imagem Docker do tema, na mesma versão do `requirements-docs.txt`, sem instalar nada na máquina. O site abre em **http://localhost:8000** e recarrega a cada página salva. `Ctrl+C` para.
+
+Sem o Docker:
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve
+``` A cada push na `main` que mexa em `docs/` ou no `mkdocs.yml`, o workflow `.github/workflows/docs.yml` publica a nova versão no GitHub Pages.
