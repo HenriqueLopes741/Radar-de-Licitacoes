@@ -1,17 +1,25 @@
-# Copie para config/alertas.yml e ajuste. O alertas.yml fica fora do Git
-# porque terá e-mails reais.
+# Copie para config/alertas.yml (make alertas) e troque os e-mails pelos seus.
+# O alertas.yml fica fora do Git porque terá e-mails reais.
 #
 # Todos os critérios são opcionais e valem juntos:
 #   palavras_chave   basta uma aparecer no objeto, sem diferenciar acentos e maiúsculas
 #   ufs              siglas dos estados
 #   valor_minimo     em reais; contratações de valor sigiloso ficam de fora
 #   enviar_se_vazio  envia o e-mail mesmo sem resultados (padrão: false)
+#
+# Entre parênteses, a média por dia útil de Pregão Eletrônico em outubro de 2026.
 destinatarios:
+  # Palavras-chave e valor mínimo, no Brasil todo (cerca de 50 por dia)
   - email: ti@exemplo.com
-    palavras_chave: ["Universidade"]
-    ufs: ["DF"]
-    valor_minimo: 50000
+    palavras_chave: ["software", "computador", "notebook", "informática", "tecnologia da informação", "impressora"]
+    valor_minimo: 100000
 
+  # Palavras-chave e estados (cerca de 30 por dia)
+  - email: alimentos@exemplo.com
+    palavras_chave: ["alimentação escolar", "merenda", "gêneros alimentícios"]
+    ufs: ["SP", "MG", "PR", "RS", "SC"]
+
+  # Só palavras-chave, avisando também nos dias sem resultados (cerca de 100 por dia)
   - email: saude@exemplo.com
-    palavras_chave: ["medicamento"]
+    palavras_chave: ["medicamento", "material hospitalar", "insumos hospitalares", "material médico"]
     enviar_se_vazio: true

@@ -2,57 +2,123 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Alerta PNCP</title>
 </head>
-<!-- Estilos inline: vários clientes de e-mail ignoram o <style> do cabeçalho -->
-<body style="margin:0; padding:24px; background:#f4f5f7; font-family:Arial, Helvetica, sans-serif; color:#222;">
-  <div style="max-width:760px; margin:0 auto; background:#fff; border-radius:8px; padding:24px;">
-    <h2 style="margin:0 0 4px; font-size:20px;">Pregões publicados em {{ dia | data }}</h2>
+<!-- Estilos inline e tabelas de layout: vários clientes de e-mail ignoram o <style>
+     do cabeçalho, e o Outlook não entende flexbox nem grid -->
+<body style="margin:0; padding:0; background:#f3f4f6;">
+  <!-- Texto de prévia: aparece ao lado do assunto na caixa de entrada -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">{{ previa }}</div>
 
-    <p style="margin:0 0 16px; color:#555; font-size:14px;">
-      Seus critérios:
-      {{ destinatario.palavras_chave | join(", ") if destinatario.palavras_chave else "qualquer objeto" }}
-      · {{ destinatario.ufs | join(", ") if destinatario.ufs else "todas as UFs" }}
-      {% if destinatario.valor_minimo %}· a partir de {{ destinatario.valor_minimo | reais }}{% endif %}
-    </p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px; background:#ffffff; border-radius:10px; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
 
-    {% if total == 0 %}
-    <p style="font-size:15px;">Nenhuma contratação bateu com seus critérios neste dia.</p>
-    {% else %}
-    <p style="font-size:15px;">
-      <strong>{{ total }}</strong> {{ "contratação" if total == 1 else "contratações" }}
-      {% if total > contratacoes | length %}
-      — aqui estão as {{ contratacoes | length }} de maior valor; a lista completa está no CSV anexo.
-      {% else %}
-      — a lista também vai no CSV anexo.
-      {% endif %}
-    </p>
+          <tr>
+            <td style="padding:28px 28px 4px;">
+              <div style="font-size:12px; color:#6b7280; letter-spacing:0.05em; text-transform:uppercase;">Alerta PNCP · publicadas em {{ dia | data }}</div>
+              <h1 style="margin:8px 0 0; font-size:24px; line-height:1.25; color:#111827;">
+                {% if total == 0 %}Nenhuma contratação nova para você{% elif total == 1 %}1 contratação nova para você{% else %}{{ total }} contratações novas para você{% endif %}
+              </h1>
+              <p style="margin:10px 0 0; font-size:13px; line-height:1.5; color:#6b7280;">
+                {{ destinatario.palavras_chave | join(", ") if destinatario.palavras_chave else "Qualquer objeto" }}
+                · {{ destinatario.ufs | join(", ") if destinatario.ufs else "todas as UFs" }}
+                {% if destinatario.valor_minimo %}· a partir de {{ destinatario.valor_minimo | reais }}{% endif %}
+              </p>
+            </td>
+          </tr>
 
-    <table style="width:100%; border-collapse:collapse; font-size:13px;">
-      <tr style="background:#eef1f5; text-align:left;">
-        <th style="padding:8px;">Objeto</th>
-        <th style="padding:8px;">Órgão</th>
-        <th style="padding:8px;">Local</th>
-        <th style="padding:8px; text-align:right;">Valor estimado</th>
-        <th style="padding:8px;">Encerra em</th>
-      </tr>
-      {% for c in contratacoes %}
-      <tr style="border-top:1px solid #e3e6ea; vertical-align:top;">
-        <td style="padding:8px;">
-          {% if c.link_pncp %}<a href="{{ c.link_pncp }}" style="color:#1a56db;">{{ c.objeto }}</a>{% else %}{{ c.objeto }}{% endif %}
-        </td>
-        <td style="padding:8px;">{{ c.orgao }}</td>
-        <td style="padding:8px;">{{ c.municipio }}/{{ c.uf }}</td>
-        <td style="padding:8px; text-align:right; white-space:nowrap;">{{ c.valor_estimado | reais }}</td>
-        <td style="padding:8px; white-space:nowrap;">{{ c.data_encerramento | data_hora }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-    {% endif %}
+          {% if total > 0 %}
+          <tr>
+            <td style="padding:20px 28px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="33%" style="padding:12px; background:#f9fafb; border-radius:8px 0 0 8px;">
+                    <div style="font-size:20px; font-weight:bold; color:#111827; white-space:nowrap;">{{ total }}</div>
+                    <div style="font-size:12px; color:#6b7280;">no total</div>
+                  </td>
+                  <td width="34%" style="padding:12px; background:#f9fafb; border-left:2px solid #ffffff;">
+                    <div style="font-size:20px; font-weight:bold; color:#111827; white-space:nowrap;">{{ resumo.proximo_prazo | dia_mes if resumo.proximo_prazo else "—" }}</div>
+                    <div style="font-size:12px; color:#6b7280;">próximo prazo{% if resumo.dias_proximo is not none %} (em {{ resumo.dias_proximo }} {{ "dia" if resumo.dias_proximo == 1 else "dias" }}){% endif %}</div>
+                  </td>
+                  <td width="33%" style="padding:12px; background:#f9fafb; border-left:2px solid #ffffff; border-radius:0 8px 8px 0;">
+                    <div style="font-size:20px; font-weight:bold; color:#111827; white-space:nowrap;">{{ resumo.maior_valor | reais_curto }}</div>
+                    <div style="font-size:12px; color:#6b7280;">maior valor</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-    <p style="margin:24px 0 0; color:#888; font-size:12px;">
-      Alerta gerado pelo pipeline-compras-publicas-airflow com dados do Portal Nacional de Contratações Públicas.
-    </p>
-  </div>
+          {% for c in contratacoes %}
+          {% set dias = c.data_encerramento | dias_ate(hoje) %}
+          <tr>
+            <td style="padding:0 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e5e7eb;">
+                <tr>
+                  <td style="padding:18px 0;">
+                    <div style="font-size:15px; font-weight:bold; line-height:1.4; color:#111827;">{{ c.objeto | resumir }}</div>
+                    <div style="margin-top:4px; font-size:13px; line-height:1.4; color:#6b7280;">{{ c.orgao }} · {{ c.municipio }}/{{ c.uf }}</div>
+
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+                      <tr>
+                        <td style="font-size:16px; font-weight:bold; color:{{ '#6b7280' if c.valor_estimado == 0 else '#111827' }};">{{ c.valor_estimado | reais }}</td>
+                        <td align="right">
+                          {% if dias is none %}
+                          <span style="font-size:12px; color:#6b7280;">sem prazo informado</span>
+                          {% elif dias < 0 %}
+                          <span style="font-size:12px; color:#6b7280;">encerrada</span>
+                          {% else %}
+                          <!-- Vermelho até 3 dias, amarelo até 7: o que precisa de pressa salta aos olhos -->
+                          <span style="display:inline-block; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold; white-space:nowrap; {% if dias <= 3 %}background:#fee4e2; color:#b42318;{% elif dias <= 7 %}background:#fef0c7; color:#93370d;{% else %}background:#f3f4f6; color:#374151;{% endif %}">
+                            {% if dias == 0 %}encerra hoje{% elif dias == 1 %}encerra amanhã{% else %}encerra em {{ dias }} dias{% endif %} · {{ c.data_encerramento | dia_mes }}
+                          </span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    </table>
+
+                    {% if c.link_pncp %}
+                    <a href="{{ c.link_pncp }}" style="display:inline-block; margin-top:12px; font-size:13px; font-weight:bold; color:#1d4ed8; text-decoration:none;">Ver edital no PNCP →</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {% endfor %}
+
+          <tr>
+            <td style="padding:4px 28px 24px;">
+              <div style="padding:12px 14px; background:#eff6ff; border-radius:8px; font-size:13px; line-height:1.5; color:#1e3a8a;">
+                {% if total > contratacoes | length %}
+                Aqui estão as {{ contratacoes | length }} de maior valor. As {{ total }} estão no <strong>CSV anexo</strong>, que abre no Excel.
+                {% else %}
+                A lista também está no <strong>CSV anexo</strong>, que abre no Excel.
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td style="padding:16px 28px 28px; font-size:15px; line-height:1.5; color:#374151;">
+              Nenhuma contratação publicada em {{ dia | data }} bateu com os seus critérios. Você recebe este aviso porque pediu para ser avisado também nos dias sem resultados.
+            </td>
+          </tr>
+          {% endif %}
+
+          <tr>
+            <td style="padding:18px 28px 24px; border-top:1px solid #e5e7eb; font-size:12px; line-height:1.6; color:#9ca3af;">
+              Dados do Portal Nacional de Contratações Públicas (PNCP). Valor "Sigiloso" indica orçamento não divulgado.<br>
+              Para mudar os critérios, fale com quem configurou este alerta.
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

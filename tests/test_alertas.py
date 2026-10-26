@@ -191,34 +191,128 @@ def contratacao(**campos):
 
 
 DIA = date(2026, 10, 22)
+# O alerta de um dia sai à meia-noite seguinte
+HOJE = date(2026, 10, 23)
 DESTINATARIO = alertas.Destinatario(
     email="a@exemplo.com", palavras_chave=["software"], ufs=["DF"]
 )
 
 
-def test_assunto_tem_dia_e_quantidade():
-    df = para_email(contratacao(), contratacao(numero_controle_pncp="B"))
+def test_assunto_tem_quantidade_criterio_maior_valor_e_dia():
+    df = para_email(
+        contratacao(valor_estimado=Decimal("3585527.56")),
+        contratacao(numero_controle_pncp="B"),
+    )
 
-    assunto, _ = alertas.montar_email(DESTINATARIO, df, DIA)
+    assunto, _ = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
 
-    assert assunto == "Alerta PNCP 22/10/2026: 2 contratações"
+    assert assunto == "PNCP: 2 contratações de software · maior R$ 3,6 mi · 22/10"
+
+
+@pytest.mark.parametrize(
+    "destinatario, criterio",
+    [
+        (
+            alertas.Destinatario(
+                email="a@exemplo.com", palavras_chave=["software", "nuvem", "dados"]
+            ),
+            " de software, nuvem…",
+        ),
+        (alertas.Destinatario(email="a@exemplo.com", ufs=["DF", "GO"]), " em DF, GO"),
+        (alertas.Destinatario(email="a@exemplo.com"), ""),
+    ],
+)
+def test_criterio_do_assunto(destinatario, criterio):
+    df = para_email(contratacao(valor_estimado=Decimal("80000")))
+
+    assunto, _ = alertas.montar_email(destinatario, df, DIA, HOJE)
+
+    assert assunto == f"PNCP: 1 contratação{criterio} · maior R$ 80 mil · 22/10"
+
+
+def test_assunto_sem_maior_valor_quando_todas_sao_sigilosas():
+    df = para_email(contratacao(valor_estimado=Decimal("0.00")))
+
+    assunto, _ = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
+
+    assert assunto == "PNCP: 1 contratação de software · 22/10"
+
+
+@pytest.mark.parametrize(
+    "valor, texto",
+    [
+        (Decimal("1469900000"), "R$ 1,5 bi"),
+        (Decimal("3585527.56"), "R$ 3,6 mi"),
+        (Decimal("850000"), "R$ 850 mil"),
+        (Decimal("999.90"), "R$ 999,90"),
+        (Decimal("0"), "—"),
+        (None, "—"),
+    ],
+)
+def test_valor_curto(valor, texto):
+    assert alertas._reais_curto(valor) == texto
 
 
 def test_email_lista_contratacao_formatada_com_link():
     df = para_email(contratacao())
 
-    _, html = alertas.montar_email(DESTINATARIO, df, DIA)
+    _, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
 
     assert "Aquisição de software" in html
     assert 'href="https://pncp.gov.br/app/editais/00000000000100/2026/1"' in html
     assert "R$ 1.500,50" in html
-    assert "30/10/2026 09:00" in html
+    assert "encerra em 7 dias · 30/10" in html
+
+
+@pytest.mark.parametrize(
+    "encerramento, texto",
+    [
+        (datetime(2026, 10, 23, 18, 0), "encerra hoje"),
+        (datetime(2026, 10, 24, 9, 0), "encerra amanhã"),
+        (datetime(2026, 11, 5, 9, 0), "encerra em 13 dias · 05/11"),
+        (datetime(2026, 10, 22, 9, 0), "encerrada"),
+        (None, "sem prazo informado"),
+    ],
+)
+def test_prazo_aparece_em_dias(encerramento, texto):
+    df = para_email(contratacao(data_encerramento=encerramento))
+
+    _, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
+
+    assert texto in html
+
+
+def test_objeto_longo_e_resumido():
+    objeto = "Aquisição de software " + "com muitos detalhes " * 20
+    df = para_email(contratacao(objeto=objeto))
+
+    _, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
+
+    assert objeto not in html
+    resumo = alertas._resumir(objeto)
+    assert resumo in html
+    assert resumo.endswith("…")
+    assert len(resumo) <= alertas.LIMITE_DO_OBJETO + 1
+
+
+def test_resumo_mostra_o_proximo_prazo_que_ainda_nao_passou():
+    df = para_email(
+        contratacao(numero_controle_pncp="A", data_encerramento=datetime(2026, 10, 22, 9, 0)),
+        contratacao(numero_controle_pncp="B", data_encerramento=datetime(2026, 11, 10, 9, 0)),
+        contratacao(numero_controle_pncp="C", data_encerramento=datetime(2026, 11, 5, 9, 0)),
+    )
+
+    _, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
+
+    assert "próximo prazo (em 13 dias)" in html
+    # Texto de prévia, que aparece ao lado do assunto na caixa de entrada
+    assert "Próximo prazo: 05/11." in html
 
 
 def test_valor_zero_aparece_como_sigiloso():
     df = para_email(contratacao(valor_estimado=Decimal("0.00")))
 
-    _, html = alertas.montar_email(DESTINATARIO, df, DIA)
+    _, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
 
     assert "Sigiloso" in html
 
@@ -226,7 +320,7 @@ def test_valor_zero_aparece_como_sigiloso():
 def test_texto_do_objeto_nao_vira_html():
     df = para_email(contratacao(objeto="Cabo <HDMI> & adaptador"))
 
-    _, html = alertas.montar_email(DESTINATARIO, df, DIA)
+    _, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
 
     assert "Cabo &lt;HDMI&gt; &amp; adaptador" in html
 
@@ -236,19 +330,19 @@ def test_corpo_mostra_so_as_primeiras_e_avisa_do_csv():
         contratacao(numero_controle_pncp=str(i)) for i in range(60)
     ])
 
-    _, html = alertas.montar_email(DESTINATARIO, df, DIA)
+    _, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
 
     assert html.count("https://pncp.gov.br/app/editais/") == alertas.LIMITE_NO_EMAIL
-    assert "lista completa está no CSV anexo" in html
+    assert f"Aqui estão as {alertas.LIMITE_NO_EMAIL} de maior valor. As 60 estão no" in html
 
 
 def test_dia_sem_resultados():
     df = para_email()
 
-    assunto, html = alertas.montar_email(DESTINATARIO, df, DIA)
+    assunto, html = alertas.montar_email(DESTINATARIO, df, DIA, HOJE)
 
-    assert assunto == "Alerta PNCP 22/10/2026: nenhuma contratação"
-    assert "Nenhuma contratação bateu com seus critérios" in html
+    assert assunto == "PNCP: nenhuma contratação de software · 22/10"
+    assert "Nenhuma contratação publicada em 22/10/2026 bateu com os seus critérios" in html
 
 class CaixaDeSaida:
     # Faz o papel do servidor de e-mail: guarda o que seria enviado
@@ -283,11 +377,11 @@ def test_cada_destinatario_recebe_so_o_que_pediu(tmp_path):
     )
     caixa = CaixaDeSaida()
 
-    enviados = alertas.enviar_alertas(config, df, DIA, tmp_path, caixa.enviar)
+    enviados = alertas.enviar_alertas(config, df, DIA, tmp_path, caixa.enviar, HOJE)
 
     assert enviados == ["ti@exemplo.com", "saude@exemplo.com"]
     ti, saude = caixa.emails
-    assert ti["assunto"] == "Alerta PNCP 22/10/2026: 2 contratações"
+    assert ti["assunto"] == "PNCP: 2 contratações de software · maior R$ 2 mil · 22/10"
     assert list(ti["anexos"][0]["numero_controle_pncp"]) == ["A", "C"]
     assert list(saude["anexos"][0]["numero_controle_pncp"]) == ["B"]
 
@@ -297,7 +391,7 @@ def test_anexo_tem_as_colunas_da_tabela(tmp_path):
     config = config_de(alertas.Destinatario(email="a@exemplo.com"))
     caixa = CaixaDeSaida()
 
-    alertas.enviar_alertas(config, df, DIA, tmp_path, caixa.enviar)
+    alertas.enviar_alertas(config, df, DIA, tmp_path, caixa.enviar, HOJE)
 
     assert list(caixa.emails[0]["anexos"][0].columns) == load.COLUNAS
 
@@ -312,10 +406,10 @@ def test_sem_resultado_so_envia_para_quem_pediu(tmp_path):
     )
     caixa = CaixaDeSaida()
 
-    enviados = alertas.enviar_alertas(config, df, DIA, tmp_path, caixa.enviar)
+    enviados = alertas.enviar_alertas(config, df, DIA, tmp_path, caixa.enviar, HOJE)
 
     assert enviados == ["quer@exemplo.com"]
-    assert caixa.emails[0]["assunto"] == "Alerta PNCP 22/10/2026: nenhuma contratação"
+    assert caixa.emails[0]["assunto"] == "PNCP: nenhuma contratação de software · 22/10"
     # Sem CSV vazio anexado
     assert caixa.emails[0]["anexos"] == []
 

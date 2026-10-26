@@ -1,5 +1,7 @@
 import re
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import yaml
@@ -92,8 +94,14 @@ def contratacoes_do_dia(conexao, dia):
         colunas = [coluna.name for coluna in cursor.description]
         return pd.DataFrame(cursor.fetchall(), columns=colunas)
 
-# O e-mail mostra as maiores; o resto vai só no CSV anexo
-LIMITE_NO_EMAIL = 50
+# O e-mail mostra as maiores; o resto vai só no CSV anexo. Com 50, o HTML
+# chegava perto dos 102 KB a partir dos quais o Gmail corta a mensagem
+LIMITE_NO_EMAIL = 30
+
+# Objetos passam de 1.000 caracteres; o texto inteiro está no edital e no CSV
+LIMITE_DO_OBJETO = 160
+
+FUSO = ZoneInfo("America/Sao_Paulo")
 
 
 def _reais(valor):
@@ -105,41 +113,121 @@ def _reais(valor):
     return "R$ " + f"{float(valor):,.2f}".translate(str.maketrans(",.", ".,"))
 
 
-def _data_hora(valor):
-    if valor is None or pd.isna(valor):
+def _reais_curto(valor):
+    # R$ 3,6 mi, R$ 850 mil: cabe no assunto e no resumo
+    if valor is None or pd.isna(valor) or valor == 0:
         return "—"
-    return f"{valor:%d/%m/%Y %H:%M}"
+    valor = float(valor)
+    for limite, sufixo in ((1e9, "bi"), (1e6, "mi")):
+        if valor >= limite:
+            return "R$ " + f"{valor / limite:.1f}".replace(".", ",") + f" {sufixo}"
+    if valor >= 1e3:
+        return f"R$ {valor / 1e3:.0f} mil"
+    return _reais(valor)
 
 
-# autoescape: um objeto com "<" ou "&" aparece como texto, sem quebrar o HTML
+def _resumir(texto, limite=LIMITE_DO_OBJETO):
+    texto = texto or ""
+    if len(texto) <= limite:
+        return texto
+    # Corta na última palavra inteira, sem deixar pontuação antes das reticências
+    return texto[:limite].rsplit(" ", 1)[0].rstrip(",;.:-") + "…"
+
+
+def _dias_ate(encerramento, hoje):
+    if encerramento is None or pd.isna(encerramento):
+        return None
+    return (pd.Timestamp(encerramento).date() - hoje).days
+
+
+# autoescape: um objeto com "<" ou "&" aparece como texto, sem quebrar o HTML.
+# trim_blocks e lstrip_blocks tiram as linhas em branco das tags do Jinja,
+# que somam alguns KB num e-mail com dezenas de contratações
 _templates = Environment(
     loader=FileSystemLoader(Path(__file__).parent / "templates"),
     autoescape=True,
+    trim_blocks=True,
+    lstrip_blocks=True,
 )
 _templates.filters["reais"] = _reais
-_templates.filters["data_hora"] = _data_hora
+_templates.filters["reais_curto"] = _reais_curto
+_templates.filters["resumir"] = _resumir
+_templates.filters["dias_ate"] = _dias_ate
 _templates.filters["data"] = lambda dia: f"{dia:%d/%m/%Y}"
+_templates.filters["dia_mes"] = lambda dia: f"{dia:%d/%m}"
 
 
-def montar_email(destinatario, df, dia):
+def _criterio(destinatario):
+    # O critério principal no assunto distingue um alerta do outro na caixa de entrada
+    if destinatario.palavras_chave:
+        palavras = destinatario.palavras_chave
+        return " de " + ", ".join(palavras[:2]) + ("…" if len(palavras) > 2 else "")
+    if destinatario.ufs:
+        ufs = destinatario.ufs
+        return " em " + ", ".join(ufs[:3]) + ("…" if len(ufs) > 3 else "")
+    return ""
+
+
+def _resumo(df, hoje):
+    valores = df["valor_estimado"].astype(float)
+    # Valor zero é orçamento sigiloso: não conta como "maior valor"
+    divulgados = valores[valores > 0]
+    maior = divulgados.idxmax() if not divulgados.empty else None
+
+    # Comparando com Timestamp, prazos vazios (NaT) só ficam de fora; com uma
+    # date, o pandas não compara uma coluna em que todos os prazos são vazios
+    encerramentos = pd.to_datetime(df["data_encerramento"])
+    abertas = encerramentos[encerramentos.dt.normalize() >= pd.Timestamp(hoje)]
+    proximo_prazo = abertas.min() if not abertas.empty else None
+
+    return {
+        "maior_valor": valores[maior] if maior is not None else None,
+        "maior_objeto": df.loc[maior, "objeto"] if maior is not None else None,
+        "proximo_prazo": proximo_prazo,
+        "dias_proximo": _dias_ate(proximo_prazo, hoje),
+    }
+
+
+def montar_email(destinatario, df, dia, hoje=None):
+    # "hoje" conta os dias até o encerramento; o alerta sai à meia-noite
+    # seguinte ao dia publicado, então em geral é o dia seguinte a "dia"
+    hoje = hoje or datetime.now(FUSO).date()
     total = len(df)
+    criterio = _criterio(destinatario)
+
     if total == 0:
-        resumo = "nenhuma contratação"
-    elif total == 1:
-        resumo = "1 contratação"
+        resumo = None
+        assunto = f"PNCP: nenhuma contratação{criterio} · {dia:%d/%m}"
+        previa = "Nenhuma contratação bateu com os seus critérios neste dia."
     else:
-        resumo = f"{total} contratações"
-    assunto = f"Alerta PNCP {dia:%d/%m/%Y}: {resumo}"
+        resumo = _resumo(df, hoje)
+        quantidade = "1 contratação" if total == 1 else f"{total} contratações"
+        maior = (
+            f" · maior {_reais_curto(resumo['maior_valor'])}"
+            if resumo["maior_valor"] is not None
+            else ""
+        )
+        assunto = f"PNCP: {quantidade}{criterio}{maior} · {dia:%d/%m}"
+
+        partes = []
+        if resumo["proximo_prazo"] is not None:
+            partes.append(f"Próximo prazo: {resumo['proximo_prazo']:%d/%m}.")
+        if resumo["maior_objeto"]:
+            partes.append(f"Maior: {_resumir(resumo['maior_objeto'], 70)}")
+        previa = " ".join(partes)
 
     html = _templates.get_template("alerta.html").render(
         destinatario=destinatario,
         dia=dia,
+        hoje=hoje,
         total=total,
+        resumo=resumo,
+        previa=previa,
         contratacoes=df.head(LIMITE_NO_EMAIL).to_dict("records"),
     )
     return assunto, html
 
-def enviar_alertas(config, df, dia, pasta, enviar):
+def enviar_alertas(config, df, dia, pasta, enviar, hoje=None):
     # "enviar" recebe to, subject, html_content e files, como o
     # send_email_smtp do Airflow; nos testes, uma função que só anota
     enviados = []
@@ -148,7 +236,7 @@ def enviar_alertas(config, df, dia, pasta, enviar):
         if filtradas.empty and not destinatario.enviar_se_vazio:
             continue
 
-        assunto, html = montar_email(destinatario, filtradas, dia)
+        assunto, html = montar_email(destinatario, filtradas, dia, hoje)
 
         anexos = []
         if not filtradas.empty:
