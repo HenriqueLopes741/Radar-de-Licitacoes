@@ -1,6 +1,8 @@
 # Pipeline de Compras Públicas com Airflow
 
-Pipeline de dados que coleta, todo dia, as contratações publicadas no **PNCP** (Portal Nacional de Contratações Públicas). Ele trata os dados, grava num banco PostgreSQL, mostra tudo num dashboard e manda por e-mail só o que interessa a cada pessoa. A orquestração é feita com **Apache Airflow 3** rodando em **Docker**.
+**Pare de garimpar licitações.** Todo dia, este pipeline busca as contratações publicadas no Portal Nacional de Contratações Públicas (PNCP) e manda para cada pessoa **só as que importam para ela**: com as palavras-chave, os estados e o valor mínimo que ela escolher. O resto fica num dashboard para explorar, e tudo sobe com um comando.
+
+Por baixo, uma DAG do **Apache Airflow 3** rodando em **Docker** coleta os dados da API do PNCP, trata e grava num **PostgreSQL**, de onde saem o dashboard e os alertas.
 
 ```mermaid
 flowchart LR
