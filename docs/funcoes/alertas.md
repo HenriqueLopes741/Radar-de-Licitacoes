@@ -54,6 +54,8 @@ Para recebê-las, não use `valor_minimo`.
 
 ## O que chega no e-mail
 
+![E-mail de alerta com as contratações filtradas](../img/alerta-email.png)
+
 - **Assunto:** `Alerta PNCP 22/10/2026: 12 contratações`
 - **Corpo:** os critérios do destinatário e uma tabela com objeto (com link para o edital), órgão, município/UF, valor estimado e prazo de encerramento, das maiores para as menores.
 - **Anexo:** `contratacoes-pncp-2026-10-22.csv`, com todas as contratações filtradas e as mesmas colunas do [CSV do pipeline](dados-gerados.md#colunas).

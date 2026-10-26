@@ -4,6 +4,8 @@ O dashboard mostra as contratações do banco `pncp` com filtros, indicadores, g
 
 **Endereço:** http://localhost:8501
 
+![Dashboard com indicadores e gráficos das contratações](../img/dashboard.png)
+
 Num ambiente novo, o dashboard avisa que ainda não há dados. Basta esperar a primeira carga da DAG terminar e recarregar a página.
 
 ## Filtros
