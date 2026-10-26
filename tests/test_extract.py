@@ -186,3 +186,17 @@ def test_data_informada_tem_prioridade_sobre_o_intervalo():
     inicio = datetime(2026, 10, 8, 3, 0, tzinfo=timezone.utc)
 
     assert extract.dia_a_processar("2026-09-30", inicio) == "20260930"
+
+
+def test_sem_intervalo_processa_o_dia_anterior():
+    # Acionada pela API ou pelo CLI sem data lógica: a execução não tem intervalo
+    agora = datetime(2026, 10, 25, 15, 0, tzinfo=timezone.utc)
+
+    assert extract.dia_a_processar(None, None, agora=agora) == "20261024"
+
+
+def test_sem_intervalo_o_dia_anterior_segue_o_horario_de_brasilia():
+    # 25/10 em UTC, mas ainda 24/10 em Brasília: o dia anterior é 23/10
+    agora = datetime(2026, 10, 25, 1, 0, tzinfo=timezone.utc)
+
+    assert extract.dia_a_processar(None, None, agora=agora) == "20261023"

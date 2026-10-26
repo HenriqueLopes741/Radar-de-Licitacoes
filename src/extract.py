@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -26,10 +26,16 @@ PASTA_SAIDA = Path("data/raw")
 FUSO = ZoneInfo("America/Sao_Paulo")
 
 
-def dia_a_processar(data, inicio_intervalo):
+def dia_a_processar(data, inicio_intervalo, agora=None):
     # Data informada ao acionar a DAG; senão, o dia que o intervalo da execução cobre
     if data:
         return date.fromisoformat(data).strftime("%Y%m%d")
+
+    # Acionada pela API ou pelo CLI sem data lógica, a execução não tem
+    # intervalo: processa o dia anterior, como a execução agendada
+    if inicio_intervalo is None:
+        agora = agora or datetime.now(FUSO)
+        return (agora.astimezone(FUSO) - timedelta(days=1)).strftime("%Y%m%d")
 
     return inicio_intervalo.astimezone(FUSO).strftime("%Y%m%d")
 

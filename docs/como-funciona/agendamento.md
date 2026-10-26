@@ -22,10 +22,11 @@ A função `dia_a_processar`, em `src/extract.py`, escolhe o dia assim:
 
 1. Se o parâmetro **Data** foi preenchido, usa essa data.
 2. Senão, usa o **início do intervalo**, convertido para o horário de Brasília.
+3. Se a execução não tem intervalo, usa o dia anterior ao de hoje, no horário de Brasília.
 
 A conversão importa porque o Airflow guarda os horários em UTC: meia-noite de 23/10 em Brasília é `2026-10-23 03:00 UTC`.
 
-Uma execução acionada pelo CLI ou pela API **sem data lógica** não tem intervalo. Nesse caso, a Data precisa ser informada, senão a extração falha. O `make rodar` sempre a informa.
+Uma execução acionada pelo CLI ou pela API **sem data lógica** não tem intervalo. Nesse caso, sem a Data, a DAG processa o dia anterior, contado a partir da hora em que a execução roda.
 
 No backfill, a **data lógica** de cada execução é o início do intervalo. Por isso a data pedida no backfill é o próprio dia processado.
 

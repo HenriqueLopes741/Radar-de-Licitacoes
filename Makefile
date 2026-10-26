@@ -20,10 +20,6 @@ INICIO := $(shell TZ=America/Sao_Paulo date -d "-$(DIAS) days" +%F 2>/dev/null |
 FIM := $(ONTEM)
 endif
 
-# Acionada pelo CLI, a execução não tem intervalo de dados e a DAG não saberia
-# qual dia processar: sem DATA, vai o dia anterior, como na execução agendada
-DATA ?= $(ONTEM)
-
 # Vírgula literal dentro de $(if ...), que usa a vírgula para separar os argumentos
 virgula := ,
 # {"modalidades": [6,8], "data": "2026-10-20"}, só com o que foi informado
