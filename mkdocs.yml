@@ -1,8 +1,8 @@
-site_name: Pipeline de Compras Públicas
+site_name: Radar de Licitações
 site_description: Pipeline com Apache Airflow que coleta as contratações do PNCP, grava num banco e envia alertas por e-mail
-site_url: https://henriquelopes741.github.io/pipeline-compras-publicas-airflow/
-repo_url: https://github.com/HenriqueLopes741/pipeline-compras-publicas-airflow
-repo_name: pipeline-compras-publicas-airflow
+site_url: https://henriquelopes741.github.io/Radar-de-Licitacoes/
+repo_url: https://github.com/HenriqueLopes741/Radar-de-Licitacoes
+repo_name: Radar-de-Licitacoes
 edit_uri: edit/main/docs/
 
 nav:

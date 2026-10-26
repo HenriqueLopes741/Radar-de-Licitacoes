@@ -44,6 +44,10 @@
 #
 # Feel free to modify this file to suit your needs.
 ---
+# Nome fixo do projeto: sem ele, o Compose usa o nome da pasta, e renomear
+# ou clonar com outro nome criaria um volume novo, com o banco vazio
+name: radar-de-licitacoes
+
 x-airflow-common:
   &airflow-common
   # In order to add custom dependencies or upgrade provider distributions you can use your extended image.

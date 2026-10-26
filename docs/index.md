@@ -1,4 +1,4 @@
-# Pipeline de Compras Públicas com Airflow
+# Radar de Licitações
 
 **Pare de garimpar licitações.** Todo dia, este pipeline busca as contratações publicadas no Portal Nacional de Contratações Públicas (PNCP) e manda para cada pessoa **só as que importam para ela**: com as palavras-chave, os estados e o valor mínimo que ela escolher. O resto fica num dashboard para explorar, e tudo sobe com um comando.
 
@@ -33,8 +33,8 @@ flowchart LR
 Com Docker e `make` instalados:
 
 ```bash
-git clone https://github.com/HenriqueLopes741/pipeline-compras-publicas-airflow.git
-cd pipeline-compras-publicas-airflow
+git clone https://github.com/HenriqueLopes741/Radar-de-Licitacoes.git
+cd Radar-de-Licitacoes
 make run                # configura, sobe tudo e ativa a DAG
 make backfill DIAS=30   # opcional: carrega os últimos 30 dias
 ```

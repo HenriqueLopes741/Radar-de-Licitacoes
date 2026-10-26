@@ -12,8 +12,8 @@ Esta página leva de uma pasta vazia até a primeira carga no banco. Leva uns 15
 ## Subir com um comando
 
 ```bash
-git clone https://github.com/HenriqueLopes741/pipeline-compras-publicas-airflow.git
-cd pipeline-compras-publicas-airflow
+git clone https://github.com/HenriqueLopes741/Radar-de-Licitacoes.git
+cd Radar-de-Licitacoes
 make run
 ```
 
