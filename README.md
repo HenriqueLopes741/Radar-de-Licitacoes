@@ -9,6 +9,8 @@
 
 **[Documentação](https://henriquelopes741.github.io/Radar-de-Licitacoes/)** · [Instalação](https://henriquelopes741.github.io/Radar-de-Licitacoes/instalacao/subir-o-ambiente/) · [Alertas por e-mail](https://henriquelopes741.github.io/Radar-de-Licitacoes/funcoes/alertas/) · [Dashboard](https://henriquelopes741.github.io/Radar-de-Licitacoes/funcoes/dashboard/) · [Carregar o histórico](https://henriquelopes741.github.io/Radar-de-Licitacoes/instalacao/carregar-dias-anteriores/)
 
+![make run sobe o ambiente, o dashboard filtra as contratações e o alerta chega por e-mail](docs/img/demo.gif)
+
 <table>
   <tr>
     <td width="60%"><img src="docs/img/dashboard.png" alt="Dashboard com indicadores e gráficos das contratações"></td>
